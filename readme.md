@@ -1,8 +1,8 @@
-<!-- fastapi, uvicorn, sqlalchemy, pymysql, cryptography, python-multipart, passlib, python-jose -->
+<!-- fastapi, uvicorn, sqlalchemy, pymysql, cryptography, python-multipart, passlib, python-jose, bcrypt -->
 
 # Pasos para correr la API
 
-1. activar el entorno virtual (preguntenme cualq cosa)
+1. crear y activar entorno virtual (preguntenme cualq cosa)
 
 ```.\miEntorno1\bin\activate```
 
@@ -56,7 +56,7 @@ Los datos del login no se pasan por json. Muestro como se pasan en el postman, d
 
 http://localhost:8000/users/me con el bearer
 
-## POST make order
+## POST make order --> actualiza stock
 
 http://localhost:8000/order
 
@@ -103,6 +103,27 @@ http://localhost:8000/products
 ## GET get specific product
 
 http://localhost:8000/products/2
+
+## PUT update product
+
+http://localhost:8000/products/1
+
+Ejemplo:
+
+```
+{
+  "name": "Pelota de RUGBY UPDATED",
+  "description": "De goma",
+  "price": 25000,
+  "stock": 100,
+  "code": "PELOTA001",
+  "category": "Pelotas"
+}
+```
+
+## DELETE delete product
+
+http://localhost:8000/products/1
 
 ## PUT edit sale status
 

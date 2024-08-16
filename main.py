@@ -178,6 +178,31 @@ class ProductOrder(BaseModel):
 class OrderCreate(BaseModel):
     products: List[ProductOrder]
 
+# @user.post("/order", status_code=status.HTTP_200_OK)
+# async def create_order(order_data: OrderCreate, user: user_dependency, db: db_dependency):
+#     if not user:
+#         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Auth failed")
+
+#     # asocio con user
+#     new_order = Order(client_id=user.id)
+#     db.add(new_order)
+#     db.commit()
+#     db.refresh(new_order)
+
+#     # agg products a la order
+#     for product in order_data.products:
+#         product_instance = db.query(Product).filter(Product.id == product.product_id).first()
+#         if not product_instance:
+#             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Product {product.product_id} not found")
+#         db.execute(order_product_table.insert().values(order_id=new_order.id, product_id=product.product_id, quantity=product.quantity))
+
+#     # creo la sale asociada con la order
+#     new_sale = Sale(order_id=new_order.id, datetime=datetime.utcnow())
+#     db.add(new_sale)
+#     db.commit()
+
+#     return {"order_id": new_order.id, "message": "Order created successfully"}
+
 @user.post("/order", status_code=status.HTTP_200_OK)
 async def create_order(order_data: OrderCreate, user: user_dependency, db: db_dependency):
     if not user:
@@ -193,7 +218,18 @@ async def create_order(order_data: OrderCreate, user: user_dependency, db: db_de
     for product in order_data.products:
         product_instance = db.query(Product).filter(Product.id == product.product_id).first()
         if not product_instance:
+            db.delete(new_order)
+            db.commit()
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Product {product.product_id} not found")
+        
+        # Restar el stock pedido del stock de los productos
+        if product_instance.stock < product.quantity:
+            db.delete(new_order)
+            db.commit()
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Not enough stock for product {product.product_id}")
+        
+        
+        product_instance.stock -= product.quantity
         db.execute(order_product_table.insert().values(order_id=new_order.id, product_id=product.product_id, quantity=product.quantity))
 
     # creo la sale asociada con la order
@@ -239,6 +275,26 @@ async def create_product(user: user_dependency, product: ProductCreate, db: db_d
 
     return {"message": "Product created successfully", "product": new_product}
 
+# update product
+
+@product_router.put("/products/{product_id}", status_code=status.HTTP_200_OK)
+async def update_product(user: user_dependency, product_id: int, product_update: ProductCreate, db: db_dependency):
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+    
+    product.name = product_update.name 
+    product.description = product_update.description 
+    product.price = product_update.price 
+    product.stock = product_update.stock 
+    product.code = product_update.code 
+    product.category = product_update.category 
+
+    db.commit()
+    db.refresh(product)
+    
+    return {"message": "Product updated successfully", "product": product}
+
 # get products
 @product_router.get("/products", status_code=status.HTTP_200_OK)
 async def get_all_products(user: user_dependency, db: db_dependency):
@@ -267,6 +323,19 @@ async def get_product(user: user_dependency, product_id: int, db: db_dependency)
         "category": product.category
     }
 
+# delete product
+
+@product_router.delete("/products/{product_id}", status_code=status.HTTP_200_OK)
+async def delete_product(user: user_dependency, product_id: int, db: db_dependency):
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+    
+    db.delete(product)
+    db.commit()
+    
+    return {"message": "Product deleted successfully"}
+
 # editar status de la venta
 sale_router = APIRouter()
 
@@ -286,13 +355,35 @@ async def update_sale_status(user: user_dependency, sale_id: int, status_update:
     return {"message": "Sale status updated successfully", "sale": sale}
 
 # get orders
+# @sale_router.get("/orders", status_code=status.HTTP_200_OK)
+# async def get_all_orders(user: user_dependency, db: db_dependency):
+#     orders = db.query(Order).all()
+#     return {"orders": orders}
+
 @sale_router.get("/orders", status_code=status.HTTP_200_OK)
 async def get_all_orders(user: user_dependency, db: db_dependency):
     orders = db.query(Order).all()
-    return {"orders": orders}
-
-
-
+    detailed_orders = []
+    for order in orders:
+        order_details = {
+            "id": order.id,
+            "client_id": order.client_id,
+            "products": [
+                {
+                    "product_id": product.id,
+                    "name": product.name,
+                    "quantity": order_product.quantity
+                }
+                for product, order_product in zip(order.products, db.query(order_product_table).filter(order_product_table.c.order_id == order.id).all())
+            ],
+            "sale": {
+                "sale_id": order.sale[0].id,
+                "datetime": order.sale[0].datetime,
+                "state": order.sale[0].state
+            } if order.sale else None
+        }
+        detailed_orders.append(order_details)
+    return {"orders": detailed_orders}
 
 
 # endpoint para devolver el rol del usuario
