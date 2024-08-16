@@ -32,6 +32,7 @@ class User(Base):
     party = Column(String(255))
     locality = Column(String(255))
     address = Column(String(255))
+    dni = Column(Integer)
     orders = relationship("Order", back_populates="client")
 
 order_product_table = Table('order_product', Base.metadata,
