@@ -66,7 +66,8 @@ class Sale(Base):
     order_id = Column(Integer, ForeignKey('orders.id'))
     order = relationship("Order", back_populates="sale")
     datetime = Column(DateTime, default=datetime.utcnow)
-    state = Column(String(20), default="In progress")
+    status = Column(String(20), default="In progress")
+    total = Column(Integer)
 
 Base.metadata.create_all(engine)
 
@@ -179,30 +180,6 @@ class ProductOrder(BaseModel):
 class OrderCreate(BaseModel):
     products: List[ProductOrder]
 
-# @user.post("/order", status_code=status.HTTP_200_OK)
-# async def create_order(order_data: OrderCreate, user: user_dependency, db: db_dependency):
-#     if not user:
-#         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Auth failed")
-
-#     # asocio con user
-#     new_order = Order(client_id=user.id)
-#     db.add(new_order)
-#     db.commit()
-#     db.refresh(new_order)
-
-#     # agg products a la order
-#     for product in order_data.products:
-#         product_instance = db.query(Product).filter(Product.id == product.product_id).first()
-#         if not product_instance:
-#             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Product {product.product_id} not found")
-#         db.execute(order_product_table.insert().values(order_id=new_order.id, product_id=product.product_id, quantity=product.quantity))
-
-#     # creo la sale asociada con la order
-#     new_sale = Sale(order_id=new_order.id, datetime=datetime.utcnow())
-#     db.add(new_sale)
-#     db.commit()
-
-#     return {"order_id": new_order.id, "message": "Order created successfully"}
 
 @user.post("/order", status_code=status.HTTP_200_OK)
 async def create_order(order_data: OrderCreate, user: user_dependency, db: db_dependency):
@@ -215,7 +192,8 @@ async def create_order(order_data: OrderCreate, user: user_dependency, db: db_de
     db.commit()
     db.refresh(new_order)
 
-    # agg products a la order
+    # calculate total price of the order
+    total_price = 0
     for product in order_data.products:
         product_instance = db.query(Product).filter(Product.id == product.product_id).first()
         if not product_instance:
@@ -229,16 +207,16 @@ async def create_order(order_data: OrderCreate, user: user_dependency, db: db_de
             db.commit()
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Not enough stock for product {product.product_id}")
         
-        
+        total_price += product_instance.price * product.quantity
         product_instance.stock -= product.quantity
         db.execute(order_product_table.insert().values(order_id=new_order.id, product_id=product.product_id, quantity=product.quantity))
 
     # creo la sale asociada con la order
-    new_sale = Sale(order_id=new_order.id, datetime=datetime.utcnow())
+    new_sale = Sale(order_id=new_order.id, datetime=datetime.utcnow(), total=total_price)
     db.add(new_sale)
     db.commit()
 
-    return {"order_id": new_order.id, "message": "Order created successfully"}
+    return {"order_id": new_order.id, "message": "Order created successfully", "payment":"successful"}
 
 
 
@@ -349,7 +327,7 @@ async def update_sale_status(user: user_dependency, sale_id: int, status_update:
     if not sale:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sale not found")
     
-    sale.state = status_update.status 
+    sale.status = status_update.status 
     db.commit()
     db.refresh(sale)
     
@@ -380,7 +358,8 @@ async def get_all_orders(user: user_dependency, db: db_dependency):
             "sale": {
                 "sale_id": order.sale[0].id,
                 "datetime": order.sale[0].datetime,
-                "state": order.sale[0].state
+                "status": order.sale[0].status,
+                "total": order.sale[0].total
             } if order.sale else None
         }
         detailed_orders.append(order_details)
