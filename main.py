@@ -345,9 +345,12 @@ async def get_all_orders(user: user_dependency, db: db_dependency):
     orders = db.query(Order).all()
     detailed_orders = []
     for order in orders:
+        client = db.query(User).filter(User.id==order.client_id).first()
         order_details = {
             "id": order.id,
             "client_id": order.client_id,
+            "client_fullname": client.first_name + " " + client.last_name,
+            "client_dni": client.dni,
             "products": [
                 {
                     "product_id": product.id,
