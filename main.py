@@ -131,6 +131,7 @@ class Register(BaseModel):
     party: str
     locality: str
     address: str
+    dni: int
 
 class Token(BaseModel):
     access_token: str
@@ -149,7 +150,8 @@ async def create_user(db: db_dependency, register_request: Register):
         province=register_request.province,
         party=register_request.party,
         locality=register_request.locality,
-        address=register_request.address
+        address=register_request.address,
+        dni=register_request.dni
     )
     db.add(create_user_model)
     db.commit()
