@@ -10,6 +10,7 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 from datetime import timedelta, datetime
 from jose import jwt, JWTError
+from fastapi.middleware.cors import CORSMiddleware
 
 # db setup
 engine = create_engine("mysql+pymysql://root:@localhost:3306/pocho_sports")
@@ -66,7 +67,7 @@ class Sale(Base):
     order_id = Column(Integer, ForeignKey('orders.id'))
     order = relationship("Order", back_populates="sale")
     datetime = Column(DateTime, default=datetime.utcnow)
-    status = Column(String(20), default="In progress")
+    status = Column(String(20), default="En proceso de armado")
     total = Column(Integer)
 
 Base.metadata.create_all(engine)
@@ -379,3 +380,10 @@ app.include_router(user)
 app.include_router(order)
 app.include_router(product_router)
 app.include_router(sale_router)
+
+app.add_middleware(
+  CORSMiddleware,
+  allow_origins = ["*"],
+  allow_methods = ["*"],
+  allow_headers = ["*"]
+)
