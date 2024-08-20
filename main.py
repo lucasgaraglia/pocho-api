@@ -18,7 +18,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 meta = MetaData()
 
-# models
+# modelos del orm
 class User(Base):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -82,12 +82,14 @@ def get_db():
 
 db_dependency = Annotated[Session, Depends(get_db)]
 
+# config de desarrollo
 SECRET_KEY = "pochososadasdasd"
 ALGORITHM = "HS256"
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer("/auth/login")
 
 
+# funciones para los endpoints
 def authenticate_user(username: str, password: str, db):
     user = db.query(User).filter(User.username == username).first()
     if not user:
@@ -116,7 +118,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: db
 
 user_dependency = Annotated[dict, Depends(get_current_user)]
 
-# Routers
+# endpoints de autenticacion
 auth = APIRouter()
 
 class Register(BaseModel):
@@ -173,6 +175,7 @@ async def get_user(user: user_dependency, db: db_dependency):
     # print(user)
     return {"User": user}
 
+# endpoints de ordenes
 order = APIRouter()
 
 
@@ -222,6 +225,8 @@ async def create_order(order_data: OrderCreate, user: user_dependency, db: db_de
     return {"order_id": new_order.id, "message": "Order created successfully", "payment":"successful"}
 
 
+
+# endpoints de productos 
 
 product_router = APIRouter()
 
@@ -318,7 +323,7 @@ async def delete_product(user: user_dependency, product_id: int, db: db_dependen
     
     return {"message": "Product deleted successfully"}
 
-# editar status de la venta
+# endpoints de ventas
 sale_router = APIRouter()
 
 class SaleStatusUpdate(BaseModel):
@@ -336,11 +341,6 @@ async def update_sale_status(user: user_dependency, sale_id: int, status_update:
     
     return {"message": "Sale status updated successfully", "sale": sale}
 
-# get orders
-# @sale_router.get("/orders", status_code=status.HTTP_200_OK)
-# async def get_all_orders(user: user_dependency, db: db_dependency):
-#     orders = db.query(Order).all()
-#     return {"orders": orders}
 
 @sale_router.get("/orders", status_code=status.HTTP_200_OK)
 async def get_all_orders(user: user_dependency, db: db_dependency):
