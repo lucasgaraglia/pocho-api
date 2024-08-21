@@ -16,7 +16,7 @@ F1, Select Python Interpreter, y seleccionan el python dentro de venv.
 
 A partir de ahora, todos los comandos se ejecutan dentro del entorno virtual
 
-2. pip install requirements.txt / si no funciona, instalar nombres de las librerias directamente (comentario en la primera línea)
+2. pip install requirements.txt / si no funciona, instalar nombres de las librerias directamente: fastapi, uvicorn, sqlalchemy, pymysql, cryptography, python-multipart, passlib, python-jose, bcrypt
 
 3. crean db en mysql llamada pocho_sports, credenciales (user: root, password: )
 
