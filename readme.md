@@ -2,7 +2,11 @@
 
 # Pasos para correr la API
 
-1. crear y activar entorno virtual (preguntenme cualq cosa)
+1. Crear y activar entorno virtual
+   
+``` pip install virtualenv ```
+
+``` python -m virtualenv miEntorno1 ```
 
 ```.\miEntorno1\bin\activate```
 
@@ -12,11 +16,11 @@ F1, Select Python Interpreter, y seleccionan el python dentro de venv.
 
 A partir de ahora, todos los comandos se ejecutan dentro del entorno virtual
 
-2. pip install requirements.txt
+2. pip install requirements.txt / si no funciona, instalar nombres de las librerias directamente (comentario en la primera línea)
 
-3. crean db en mysql llamada pocho_sports, 
+3. crean db en mysql llamada pocho_sports, credenciales (user: root, password: )
 
-4. uvicorn main:app
+4. corren la api con uvicorn main:app
 
 # Endpoints
 
